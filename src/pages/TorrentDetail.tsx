@@ -26,39 +26,6 @@ export default function TorrentDetail() {
     enabled: !!id,
   });
 
-  const torrent = {
-    title: 'Cyberpunk 2077',
-    version: '2.1',
-    releaseDate: '2020-12-10',
-    developer: 'CD Projekt Red',
-    genre: 'RPG, Экшен',
-    rating: 9.2,
-    image: 'https://cdn.poehali.dev/projects/df1654b5-c500-4f7e-bbaa-37a55935a48c/files/534fc2b3-9bc5-49e8-b753-c5e0b75ade0f.jpg',
-    lastUpdate: '2024-10-28',
-    description: 'Cyberpunk 2077 — это приключенческая ролевая игра, действие которой происходит в Найт-Сити, мегаполисе будущего, жители которого одержимы властью, роскошью и модификациями тела.',
-    size: '70 ГБ',
-    languages: 'Русский, Английский',
-    voice: 'Русский, Английский',
-    tags: ['Открытый мир', 'Киберпанк', 'Будущее', 'Шутер', 'RPG'],
-  };
-
-  const screenshots = [
-    torrent.image,
-    'https://cdn.poehali.dev/projects/df1654b5-c500-4f7e-bbaa-37a55935a48c/files/678e6d8d-347e-4abb-a0f3-a4657466a7a1.jpg',
-    'https://cdn.poehali.dev/projects/df1654b5-c500-4f7e-bbaa-37a55935a48c/files/034fe0bc-9a77-41a9-95fe-6c76df534f19.jpg',
-  ];
-
-  const similarGames = [
-    { id: '1', title: 'The Witcher 3', image: 'https://cdn.poehali.dev/projects/df1654b5-c500-4f7e-bbaa-37a55935a48c/files/678e6d8d-347e-4abb-a0f3-a4657466a7a1.jpg', rating: 9.8 },
-    { id: '2', title: 'GTA V', image: 'https://cdn.poehali.dev/projects/df1654b5-c500-4f7e-bbaa-37a55935a48c/files/034fe0bc-9a77-41a9-95fe-6c76df534f19.jpg', rating: 9.5 },
-    { id: '3', title: 'Watch Dogs', image: torrent.image, rating: 8.5 },
-  ];
-
-  const comments = [
-    { id: '1', username: 'Игрок123', avatar: '', date: '2024-10-28', text: 'Отличная игра! Все работает!' },
-    { id: '2', username: 'ProGamer', avatar: '', date: '2024-10-27', text: 'Спасибо за раздачу, скачал быстро' },
-  ];
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
