@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,11 +10,21 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Icon from '@/components/ui/icon';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import Sidebar from '@/components/Sidebar';
 import TorrentCard from '@/components/TorrentCard';
+import { torrentsApi } from '@/lib/api';
 
 export default function TorrentDetail() {
+  const { id } = useParams();
   const [comment, setComment] = useState('');
+
+  const { data: torrentData, isLoading } = useQuery({
+    queryKey: ['torrent', id],
+    queryFn: () => torrentsApi.getById(Number(id)),
+    enabled: !!id,
+  });
 
   const torrent = {
     title: 'Cyberpunk 2077',
@@ -47,108 +59,124 @@ export default function TorrentDetail() {
     { id: '2', username: 'ProGamer', avatar: '', date: '2024-10-27', text: 'Спасибо за раздачу, скачал быстро' },
   ];
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <p className="text-center">Загрузка...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!torrentData || 'error' in torrentData) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <p className="text-center">Торрент не найден</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  const screenshots = torrentData.screenshots?.map(s => s.image_url) || [torrentData.image_url || ''];
+
   return (
     <div className="min-h-screen bg-background">
+      <Header />
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
           <div className="space-y-8">
             <div className="grid md:grid-cols-[300px_1fr] gap-6">
               <div className="aspect-[3/4] relative rounded-lg overflow-hidden">
                 <img
-                  src={torrent.image}
-                  alt={torrent.title}
+                  src={torrentData.image_url || ''}
+                  alt={torrentData.title}
                   className="w-full h-full object-cover"
                 />
-                <Badge className="absolute top-4 right-4 bg-primary/90 backdrop-blur">
-                  <Icon name="Star" size={14} className="mr-1" />
-                  {torrent.rating}
-                </Badge>
+                {torrentData.rating && (
+                  <Badge className="absolute top-4 right-4 bg-primary/90 backdrop-blur">
+                    <Icon name="Star" size={14} className="mr-1" />
+                    {torrentData.rating}
+                  </Badge>
+                )}
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <h1 className="text-4xl font-bold mb-2">{torrent.title}</h1>
+                  <h1 className="text-4xl font-bold mb-2">{torrentData.title}</h1>
                   <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                    <span>Версия {torrent.version}</span>
-                    <span>•</span>
-                    <span>{torrent.releaseDate}</span>
-                    <span>•</span>
-                    <span>{torrent.developer}</span>
+                    {torrentData.version && <span>Версия {torrentData.version}</span>}
+                    {torrentData.release_date && (
+                      <>
+                        <span>•</span>
+                        <span>{new Date(torrentData.release_date).toLocaleDateString('ru-RU')}</span>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  {torrent.genre.split(', ').map((g) => (
-                    <Badge key={g} variant="outline">{g}</Badge>
-                  ))}
-                </div>
+                {torrentData.genres && torrentData.genres.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {torrentData.genres.map((g) => (
+                      <Badge key={g} variant="outline">{g}</Badge>
+                    ))}
+                  </div>
+                )}
 
-                <Card className="bg-accent/50">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <Icon name="RefreshCw" className="text-primary mt-1" size={18} />
-                      <div className="flex-1">
-                        <p className="text-sm">Обновлено {torrent.lastUpdate}</p>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="link" className="h-auto p-0 text-xs">
-                              Подробности обновления
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Подробности обновления</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-2 text-sm">
-                              <p><strong>Дата:</strong> {torrent.lastUpdate}</p>
-                              <p><strong>Версия:</strong> {torrent.version}</p>
-                              <p><strong>Список изменений:</strong></p>
-                              <ul className="list-disc list-inside text-muted-foreground">
-                                <li>Исправлены критические баги</li>
-                                <li>Улучшена производительность</li>
-                                <li>Добавлен новый контент</li>
-                              </ul>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                {torrentData.updated_at && (
+                  <Card className="bg-accent/50">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <Icon name="RefreshCw" className="text-primary mt-1" size={18} />
+                        <div className="flex-1">
+                          <p className="text-sm">
+                            Обновлено {new Date(torrentData.updated_at).toLocaleDateString('ru-RU')}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">
-                  <Icon name="Users" size={14} className="mr-1" />
-                  Есть версия для игры по сети на пиратке
-                </Badge>
+                    </CardContent>
+                  </Card>
+                )}
 
                 <Button size="lg" className="w-full md:w-auto">
                   <Icon name="Download" size={18} className="mr-2" />
                   Скачать торрент
                 </Button>
-                <p className="text-sm text-muted-foreground">Размер: {torrent.size}</p>
+                {torrentData.size && (
+                  <p className="text-sm text-muted-foreground">Размер: {torrentData.size}</p>
+                )}
               </div>
             </div>
 
             <Separator />
 
-            <div>
-              <h2 className="text-2xl font-bold mb-4">Описание</h2>
-              <p className="text-muted-foreground leading-relaxed">{torrent.description}</p>
-            </div>
-
-            <div>
-              <h2 className="text-2xl font-bold mb-4">Скриншоты</h2>
-              <div className="grid grid-cols-3 gap-4">
-                {screenshots.map((screenshot, index) => (
-                  <img
-                    key={index}
-                    src={screenshot}
-                    alt={`Screenshot ${index + 1}`}
-                    className="w-full aspect-video object-cover rounded-lg cursor-pointer hover:scale-105 transition-transform"
-                  />
-                ))}
+            {torrentData.description && (
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Описание</h2>
+                <p className="text-muted-foreground leading-relaxed">{torrentData.description}</p>
               </div>
-            </div>
+            )}
+
+            {screenshots.length > 0 && screenshots[0] && (
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Скриншоты</h2>
+                <div className="grid grid-cols-3 gap-4">
+                  {screenshots.map((screenshot, index) => (
+                    <img
+                      key={index}
+                      src={screenshot}
+                      alt={`Screenshot ${index + 1}`}
+                      className="w-full aspect-video object-cover rounded-lg cursor-pointer hover:scale-105 transition-transform"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
 
             <Card>
               <CardContent className="p-6">
@@ -168,119 +196,106 @@ export default function TorrentDetail() {
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-3">Информация</h3>
                   <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Дата выхода:</span>
-                      <span>{torrent.releaseDate}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Жанр:</span>
-                      <span>{torrent.genre}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Разработчик:</span>
-                      <span>{torrent.developer}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Интерфейс:</span>
-                      <span>{torrent.languages}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Озвучка:</span>
-                      <span>{torrent.voice}</span>
-                    </div>
+                    {torrentData.release_date && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Дата выхода:</span>
+                        <span>{new Date(torrentData.release_date).toLocaleDateString('ru-RU')}</span>
+                      </div>
+                    )}
+                    {torrentData.category && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Категория:</span>
+                        <span>{torrentData.category}</span>
+                      </div>
+                    )}
+                    {torrentData.language && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Язык:</span>
+                        <span>{torrentData.language}</span>
+                      </div>
+                    )}
+                    {torrentData.platform && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Платформа:</span>
+                        <span>{torrentData.platform}</span>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-semibold mb-3">Системные требования</h3>
-                  <Tabs defaultValue="min">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="min">Минимальные</TabsTrigger>
-                      <TabsTrigger value="rec">Рекомендуемые</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="min" className="text-sm space-y-1 mt-3">
-                      <p><strong>ОС:</strong> Windows 10</p>
-                      <p><strong>Процессор:</strong> Intel Core i5-3570K</p>
-                      <p><strong>Память:</strong> 8 GB RAM</p>
-                      <p><strong>Видеокарта:</strong> GTX 780</p>
-                    </TabsContent>
-                    <TabsContent value="rec" className="text-sm space-y-1 mt-3">
-                      <p><strong>ОС:</strong> Windows 10</p>
-                      <p><strong>Процессор:</strong> Intel Core i7-4790</p>
-                      <p><strong>Память:</strong> 16 GB RAM</p>
-                      <p><strong>Видеокарта:</strong> GTX 1060</p>
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              </Card>
+              {torrentData.requirements && (Object.keys(torrentData.requirements).length > 0) && (
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold mb-3">Системные требования</h3>
+                    <Tabs defaultValue={torrentData.requirements.minimum ? "min" : "rec"}>
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="min" disabled={!torrentData.requirements.minimum}>
+                          Минимальные
+                        </TabsTrigger>
+                        <TabsTrigger value="rec" disabled={!torrentData.requirements.recommended}>
+                          Рекомендуемые
+                        </TabsTrigger>
+                      </TabsList>
+                      {torrentData.requirements.minimum && (
+                        <TabsContent value="min" className="text-sm space-y-1 mt-3">
+                          {torrentData.requirements.minimum.os && <p><strong>ОС:</strong> {torrentData.requirements.minimum.os}</p>}
+                          {torrentData.requirements.minimum.processor && <p><strong>Процессор:</strong> {torrentData.requirements.minimum.processor}</p>}
+                          {torrentData.requirements.minimum.ram && <p><strong>Память:</strong> {torrentData.requirements.minimum.ram}</p>}
+                          {torrentData.requirements.minimum.video_card && <p><strong>Видеокарта:</strong> {torrentData.requirements.minimum.video_card}</p>}
+                          {torrentData.requirements.minimum.disk_space && <p><strong>Место на диске:</strong> {torrentData.requirements.minimum.disk_space}</p>}
+                        </TabsContent>
+                      )}
+                      {torrentData.requirements.recommended && (
+                        <TabsContent value="rec" className="text-sm space-y-1 mt-3">
+                          {torrentData.requirements.recommended.os && <p><strong>ОС:</strong> {torrentData.requirements.recommended.os}</p>}
+                          {torrentData.requirements.recommended.processor && <p><strong>Процессор:</strong> {torrentData.requirements.recommended.processor}</p>}
+                          {torrentData.requirements.recommended.ram && <p><strong>Память:</strong> {torrentData.requirements.recommended.ram}</p>}
+                          {torrentData.requirements.recommended.video_card && <p><strong>Видеокарта:</strong> {torrentData.requirements.recommended.video_card}</p>}
+                          {torrentData.requirements.recommended.disk_space && <p><strong>Место на диске:</strong> {torrentData.requirements.recommended.disk_space}</p>}
+                        </TabsContent>
+                      )}
+                    </Tabs>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
-            <div>
-              <h3 className="font-semibold mb-3">Теги</h3>
-              <div className="flex flex-wrap gap-2">
-                {torrent.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary">{tag}</Badge>
-                ))}
-              </div>
-            </div>
 
-            <Card className="bg-green-500/5 border-green-500/20">
-              <CardContent className="p-6 flex items-center gap-3">
-                <Icon name="Gamepad2" className="text-green-600" size={24} />
-                <div>
-                  <h3 className="font-semibold">Steam Deck</h3>
-                  <p className="text-sm text-muted-foreground">Игра поддерживается на Steam Deck</p>
-                </div>
-              </CardContent>
-            </Card>
 
-            <div>
-              <h2 className="text-2xl font-bold mb-4">Похожие игры</h2>
-              <div className="grid grid-cols-3 gap-4">
-                {similarGames.map((game) => (
-                  <TorrentCard key={game.id} {...game} />
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h2 className="text-2xl font-bold mb-4">Комментарии</h2>
-              <Card className="mb-4">
-                <CardContent className="p-4">
-                  <Textarea
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder="Написать комментарий..."
-                    className="mb-3"
-                  />
-                  <Button>Отправить</Button>
-                </CardContent>
-              </Card>
-
-              <div className="space-y-4">
-                {comments.map((c) => (
-                  <Card key={c.id}>
-                    <CardContent className="p-4">
-                      <div className="flex gap-3">
-                        <Avatar>
-                          <AvatarImage src={c.avatar} />
-                          <AvatarFallback>{c.username[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="font-semibold">{c.username}</span>
-                            <span className="text-xs text-muted-foreground">{c.date}</span>
+            {torrentData.comments && torrentData.comments.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Комментарии</h2>
+                <div className="space-y-4">
+                  {torrentData.comments.map((c) => (
+                    <Card key={c.id}>
+                      <CardContent className="p-4">
+                        <div className="flex gap-3">
+                          <Avatar>
+                            <AvatarFallback>{c.author[0]}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="flex justify-between items-start mb-2">
+                              <span className="font-semibold">{c.author}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(c.created_at).toLocaleDateString('ru-RU')}
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{c.content}</p>
+                            {c.rating && (
+                              <div className="mt-2 flex items-center gap-1 text-xs text-primary">
+                                <Icon name="Star" size={12} />
+                                {c.rating}/10
+                              </div>
+                            )}
                           </div>
-                          <p className="text-sm">{c.text}</p>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <Card>
               <CardContent className="p-6">
@@ -301,6 +316,8 @@ export default function TorrentDetail() {
           </aside>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 }

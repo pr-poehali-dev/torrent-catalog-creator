@@ -1,31 +1,43 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import FilterButtons from '@/components/FilterButtons';
 import TorrentSlider from '@/components/TorrentSlider';
 import Sidebar from '@/components/Sidebar';
+import Footer from '@/components/Footer';
+import { torrentsApi, type Torrent } from '@/lib/api';
 
 export default function Index() {
   const [activeFilter, setActiveFilter] = useState('new');
   const navigate = useNavigate();
 
-  const newReleases = [
-    { id: '1', title: 'Cyberpunk 2077', image: 'https://cdn.poehali.dev/projects/df1654b5-c500-4f7e-bbaa-37a55935a48c/files/534fc2b3-9bc5-49e8-b753-c5e0b75ade0f.jpg', date: '2024-10-28', rating: 9.2 },
-    { id: '2', title: 'The Witcher 3', image: 'https://cdn.poehali.dev/projects/df1654b5-c500-4f7e-bbaa-37a55935a48c/files/678e6d8d-347e-4abb-a0f3-a4657466a7a1.jpg', date: '2024-10-25', rating: 9.8 },
-    { id: '3', title: 'GTA V', image: 'https://cdn.poehali.dev/projects/df1654b5-c500-4f7e-bbaa-37a55935a48c/files/034fe0bc-9a77-41a9-95fe-6c76df534f19.jpg', date: '2024-10-20', rating: 9.5 },
-    { id: '4', title: 'Red Dead Redemption 2', image: 'https://cdn.poehali.dev/projects/df1654b5-c500-4f7e-bbaa-37a55935a48c/files/534fc2b3-9bc5-49e8-b753-c5e0b75ade0f.jpg', date: '2024-10-15', rating: 9.7 },
-    { id: '5', title: 'God of War', image: 'https://cdn.poehali.dev/projects/df1654b5-c500-4f7e-bbaa-37a55935a48c/files/678e6d8d-347e-4abb-a0f3-a4657466a7a1.jpg', date: '2024-10-10', rating: 9.6 },
-    { id: '6', title: 'Horizon Zero Dawn', image: 'https://cdn.poehali.dev/projects/df1654b5-c500-4f7e-bbaa-37a55935a48c/files/034fe0bc-9a77-41a9-95fe-6c76df534f19.jpg', date: '2024-10-05', rating: 9.1 },
-  ];
+  const { data: allTorrents = [], isLoading } = useQuery({
+    queryKey: ['torrents'],
+    queryFn: () => torrentsApi.getAll(50),
+  });
 
-  const pcGames = [
-    { id: '7', title: 'Counter-Strike 2', image: 'https://cdn.poehali.dev/projects/df1654b5-c500-4f7e-bbaa-37a55935a48c/files/534fc2b3-9bc5-49e8-b753-c5e0b75ade0f.jpg', downloads: 15420, rating: 9.3 },
-    { id: '8', title: 'Dota 2', image: 'https://cdn.poehali.dev/projects/df1654b5-c500-4f7e-bbaa-37a55935a48c/files/678e6d8d-347e-4abb-a0f3-a4657466a7a1.jpg', downloads: 12830, rating: 9.0 },
-    { id: '9', title: 'Valorant', image: 'https://cdn.poehali.dev/projects/df1654b5-c500-4f7e-bbaa-37a55935a48c/files/034fe0bc-9a77-41a9-95fe-6c76df534f19.jpg', downloads: 11250, rating: 8.8 },
-    { id: '10', title: 'Apex Legends', image: 'https://cdn.poehali.dev/projects/df1654b5-c500-4f7e-bbaa-37a55935a48c/files/534fc2b3-9bc5-49e8-b753-c5e0b75ade0f.jpg', downloads: 9870, rating: 8.9 },
-    { id: '11', title: 'League of Legends', image: 'https://cdn.poehali.dev/projects/df1654b5-c500-4f7e-bbaa-37a55935a48c/files/678e6d8d-347e-4abb-a0f3-a4657466a7a1.jpg', downloads: 8650, rating: 8.7 },
-    { id: '12', title: 'Overwatch 2', image: 'https://cdn.poehali.dev/projects/df1654b5-c500-4f7e-bbaa-37a55935a48c/files/034fe0bc-9a77-41a9-95fe-6c76df534f19.jpg', downloads: 7890, rating: 8.5 },
-  ];
+  const newReleases = allTorrents
+    .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())
+    .slice(0, 6)
+    .map(t => ({
+      id: String(t.id),
+      title: t.title,
+      image: t.image_url || '',
+      date: t.release_date || '',
+      rating: t.rating || 0
+    }));
+
+  const pcGames = allTorrents
+    .filter(t => t.category === 'pc')
+    .slice(0, 6)
+    .map(t => ({
+      id: String(t.id),
+      title: t.title,
+      image: t.image_url || '',
+      downloads: t.downloads || 0,
+      rating: t.rating || 0
+    }));
 
   const handleTorrentClick = (id: string) => {
     navigate('/torrent/' + id);
@@ -60,6 +72,8 @@ export default function Index() {
           </aside>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 }

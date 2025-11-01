@@ -1,0 +1,20 @@
+{
+  "tests": [
+    {
+      "name": "Get all torrents",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": [],
+      "bodyMatcher": "type"
+    },
+    {
+      "name": "Search torrents",
+      "method": "GET",
+      "path": "/?search=game",
+      "expectedStatus": 200,
+      "expectedBody": [],
+      "bodyMatcher": "type"
+    }
+  ]
+}
